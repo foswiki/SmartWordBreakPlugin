@@ -1,0 +1,118 @@
+---+!! !SmartWordBreakPlugin
+<!--
+One line description, required for extensions repository catalog.
+BuildContrib will fill in the SHORTDESCRIPTION with the value of
+$SHORTDESCRIPTION from the .pm module, or you can redefine it here if you
+prefer.
+   * Set SHORTDESCRIPTION = %$SHORTDESCRIPTION%
+-->
+%SHORTDESCRIPTION%
+
+%TOC%
+
+---++ Usage
+
+Long words like can really mess up table formatting, making your page an untidy mess, 
+because browsers tend not to split words. You can tell the browser that it may, by using the &lt;wbr&gt; tag,
+but this tag is not supported by all browsers. In fact, there is [[http://www.quirksmode.org/oddsandends/wbr.html][*no* completely portable way to do this]].
+Besides, you would rather concentrate on content and not on irritating details like where to split long words.
+
+SmartWordBreakPlugin automatically inserts word-break markers for you. 
+It uses the correct form of word-break marker for your browser.
+
+There are several reasons why words can end up long. !WikiWords can be alarmly long e.g. SmartWordBreakPlugin.
+Long names tend to crop up in software source code and thus also in the corresponding documentation. 
+
+SmartWordBreakPlugin provides the SMARTWORDBREAK macro for selectively inserting word-breaks.
+Alternatively, the SMARTWORDBREAKPLUGIN_WHOLEPAGE preference enables processing for the whole page,
+but this can [[#WholePageProcessingCanHurtPerformance][hurt performance]].
+
+---++ Examples
+
+This table illustrates what SmartWordBreakPlugin does (change the window width to see the effect):
+<verbatim>
+%TABLE{columnwidths="30%,70%"}%
+| *Selection* | *Manifestation* |
+| %SMARTWORDBREAK{Navigate_With_Euclidean_Geometry}% | Works for short distances, based on the approximation that the world is flat. |
+| %SMARTWORDBREAK{Navigate_With_Elliptical_Geometry}% | Works for long distances. |
+</verbatim>
+
+Simulation (works on Firefox 2 & 3, IE 6 & 7):
+%TABLE{columnwidths="30%,70%"}%
+| *Selection* | *Manifestation* |
+| Navigate_<wbr>With_<wbr>Euclidean_<wbr>Geometry | Works for short distances, based on the approximation that the world is flat. |
+| Navigate_<wbr>With_<wbr>Elliptical_<wbr>Geometry | Works for long distances. |
+
+If you have the plugin installed and enabled:
+%TABLE{columnwidths="30%,70%"}%
+| *Selection* | *Manifestation* |
+| %SMARTWORDBREAK{Navigate_With_Euclidean_Geometry}% | Works for short distances, based on the approximation that the world is flat. |
+| %SMARTWORDBREAK{Navigate_With_Elliptical_Geometry}% | Works for long distances. |
+
+Without word-breaks:
+%TABLE{columnwidths="30%,70%"}%
+| *Selection* | *Manifestation* |
+| Navigate_With_Euclidean_Geometry | Works for short distances, based on the approximation that the world is flat. |
+| Navigate_With_Elliptical_Geometry | Works for long distances. |
+
+%<nop>SMARTWORDBREAK{Long_Name}% produces Long_&lt;wbr&gt;Name.
+
+The =longest= parameter specifies the maximum number of characters between word-breaks.
+Thus, %<nop>SMARTWORDBREAK{"Mathematical Excursions" longest="7"}% produces Mathema&lt;wbr&gt;
+
+---++ Typical use
+
+Add this to specific pages to make SmartWordBreakPlugin process the whole of the page (probably the best way to use this plugin):
+<literal><pre>
+&lt;!--
+   * Set<nop> SMARTWORDBREAKPLUGIN_WHOLEPAGE=1
+--&gt;
+</pre></literal>
+
+---++ Caveats
+
+Browsers do not all wrap text in the same way. Some browsers only respect word-breaks for text in tables.
+Others respect word-breaks for all text.
+
+SmartWordBreakPlugin does not understand lanuage; it does not try to split long words at hyphenation points.
+It simply chops up really-long words into fixed-length seqments
+For example, <code>%<nop>SMARTWORDBREAKPLUGIN{protoexistentialist}%</code> produces
+<code>protoexistentia&lt;wbr&gt;list</code> with the default settings.
+
+%<nop>SMARTWORDBREAK{}% breaks the automatic conversion of wikiwords into links.
+
+#WholePageProcessingCanHurtPerformance
+SmartWordBreakPlugin can hurt performance. It is better to use it only where it is needed. 
+Use %<nop>SMARTWORDBREAK{}% in preference to setting SMARTWORDBREAKPLUGIN_WHOLEPAGE to true.
+Set SMARTWORDBREAKPLUGIN_WHOLEPAGE to true for a single page in preference to setting it true for a whole web.
+Set it to true for a single web in preference to setting it true for a whole site.
+
+---++ Installation Instructions
+
+%$INSTALL_INSTRUCTIONS%
+
+---++ Preferences
+
+No preferences are stored in this topic. The example settings here have no effect.
+To learn more about setting preference variables, see the %SYSTEMWEB%.PreferenceSettings topic. 
+
+| *Variable* | *Default* | *Description* |
+| =SMARTWORDBREAKPLUGIN_WHOLEPAGE= | false | Enables processing of the whole web page. Word-breaks are inserted in link text, but links still point to the same places. This works better than %<nop>SMARTWORDBREAK{}%, but it is slower, so this preference should only be set on the pages where it is needed. |
+| =SMARTWORDBREAKPLUGIN_LONGEST= | 15 | Sets the length of the longest unbroken sequence of letters. This preference affects the whole page when using the SMARTWORDBREAKPLUGIN_WHOLEPAGE setting. It also sets the default for the =longest= parameter to  %<nop>SMARTWORDBREAK{}%. |
+| =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR= | (?i-xsm:Opera&#124;MSIE 8) | Specifies when to use a unicode character instead of a &lt;wbr&gt; tag. It may be a regular expression, which is applied to the user-agent string from the browser, or it may be a boolean value. If it is a regular expression, and it matches the user-agent string, then SmartWordBreakPlugin inserts unicode character 8203 instead of wbr tags. If it has a boolean-type value (e.g. true, false, 1 or 0), and it is false, then SmartWordBreakPlugin never inserts unicode word-break characters. If it is a boolean-type true value, then SmartWordBreakPlugin always inserts unicode word-break characters instead of wbr tags. |
+| =SMARTWORDBREAKPLUGIN_NEEDS_SPAN_WBR= | false | Similar to =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR=, but it controls the insertion of narrow &lt;span&gt;s instead of &lt;wbr&gt; tags. Only one of =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR= and =SMARTWORDBREAKPLUGIN_NEEDS_SPAN_WBR= should ever be active at a time. (You won't break anything if you do, but the behaviour is not specified so don't depend on it.) |
+
+---++ Info
+
+|  Author(s): | Foswiki:Main.MichaelTempest |
+|  Copyright: | &copy; Michael Tempest 2009 |
+|  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
+|  Release: | %$RELEASE% |
+|  Version: | %$VERSION% |
+|  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  31 Oct 2009 | Draft release |
+|  Dependencies: | %$DEPENDENCIES% |
+|  Home page: | http://foswiki.org/bin/view/Extensions/SmartWordBreakPlugin |
+|  Support: | http://foswiki.org/bin/view/Support/SmartWordBreakPlugin |
+
+<!-- Do _not_ attempt to edit this topic; it is auto-generated. -->
