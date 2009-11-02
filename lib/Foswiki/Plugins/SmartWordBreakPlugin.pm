@@ -86,6 +86,8 @@ my %regex;
 
 my $placeholderMarker;
 
+my $hyphen;
+
 =begin TML
 
 ---++ initPlugin($topic, $web, $user) -> $boolean
@@ -112,6 +114,7 @@ FOOBARSOMETHING. This avoids namespace issues.
 
 =cut
 
+###############################################################################
 sub initPlugin {
     my ( $topic, $web, $user, $installWeb ) = @_;
 
@@ -141,9 +144,17 @@ sub initPlugin {
     # seen in the topic text.
     Foswiki::Func::registerTagHandler( 'SMARTWORDBREAK', \&_SMARTWORDBREAK );
 
+	undef $hyphen;
+
 	%optionsFromPreferences = ();
 
 	$optionsFromPreferences{wholePage} = Foswiki::Func::getPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE') || 0;
+	if ($optionsFromPreferences{wholePage}) {
+		$optionsFromPreferences{tables} = 0;
+	}
+	else {
+    	$optionsFromPreferences{tables} = Foswiki::Func::getPreferencesValue('SMARTWORDBREAKPLUGIN_TABLES') || 0;
+	}
 
 	$optionsFromPreferences{longestUnbrokenWord} = Foswiki::Func::getPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST');
 	$optionsFromPreferences{longestUnbrokenWord} = 15
@@ -153,8 +164,10 @@ sub initPlugin {
 	$optionsFromPreferences{splitWikiWords} = 1;
 	$optionsFromPreferences{splitAfterUnderscore} = 1;
 	$optionsFromPreferences{splitAfterPunctuation} = 1;
+	$optionsFromPreferences{hyphenate} = 1;
 	$optionsFromPreferences{splitBeforeNumbers} = 0;
 	$optionsFromPreferences{splitAfterNumbers} = 0;
+	$optionsFromPreferences{originalInComment} = 1;
 
 	my $wordPunctuation = q/"'!_/;
 	my $splitAfterPunctuation = "\\\\" . "\\/" . "\\]" . "[=+:#^,.;(){}-"; # the dash must be last, caret must not be first, / and \ and ] must be escaped
@@ -205,6 +218,7 @@ sub initPlugin {
     return 1;
 }
 
+###############################################################################
 sub _makeRegex
 {
 	my $string = join( '', 'qr/[', @_, ']/o' );
@@ -213,6 +227,7 @@ sub _makeRegex
 	return $regex;
 }
 
+###############################################################################
 # The function used to handle the %SMARTWORDBREAK{...}% macro
 sub _SMARTWORDBREAK {
     my($session, $params, $theTopic, $theWeb) = @_;
@@ -262,10 +277,11 @@ Since Foswiki::Plugins::VERSION = '2.0'
 
 =cut
 
+###############################################################################
 sub postRenderingHandler {
 	#my( $text ) = @_;
 	
-	return unless $optionsFromPreferences{wholePage};
+	return unless $optionsFromPreferences{wholePage} or $optionsFromPreferences{tables};
 
     # You can work on $text in place by using the special perl
     # variable $_[0]. These allow you to operate on $text
@@ -280,24 +296,48 @@ sub postRenderingHandler {
 	for my $tag (@tags) {
         $_[0] = _takeOutProtected( $_[0], qr/<$tag\b.*?<\/$tag>/si, $tag, $removed );
     }
-	$_[0] = _takeOutProtected( $_[0], qr/<[\/!]?[a-z][^>]*>/si, 'anytag', $removed );
-	
-	my @text = split /($regex{tagPattern})/o, $_[0];
-	for my $portion (@text) {
-		next if $portion =~ /^$regex{tagPattern}$/o;
-	    $portion =~ s/($regex{splittableSequence})/_smartBreak($1,\%optionsFromPreferences)/ge;
-	}
-	$_[0] = join('', @text);
 
-    _putBackProtected( \$_[0], 'anytag', $removed );
+    $_[0] = _takeOutProtected( $_[0], qr/<table\b.*?<\/table>/si, 'table', $removed )
+	  if $optionsFromPreferences{tables};
+
+	_processText($_[0], $removed)
+	  if $optionsFromPreferences{wholePage};
+
+    _putBackProtected( \$_[0], 'table', $removed, sub { _processText($_[0], $removed); return $_[0]; })
+	  if $optionsFromPreferences{tables};
+
 	for my $tag (reverse @tags) {
 		_putBackProtected( \$_[0], $tag, $removed );
 	}
 }
 
+###############################################################################
+sub _processText
+{
+	# do not uncomment next line
+	#my ($text, $removed) = @_;
+	#
+	$_[0] = _takeOutProtected( $_[0], qr/<[\/!]?[a-z][^>]*>/si, 'anytag', $_[1] );
 
+	my @text = split /($regex{tagPattern})/o, $_[0];
+	for my $portion (@text) {
+		next if $portion =~ /^$regex{tagPattern}$/o;
+		$portion =~ s/($regex{splittableSequence})/_smartBreak($1,\%optionsFromPreferences)/ge;
+	}
+	$_[0] = join('', @text);
+
+    _putBackProtected( \$_[0], 'anytag', $_[1] );
+}
+
+###############################################################################
 sub _smartBreak {
 	my ($word, $options) = @_;
+
+	my $original = $word;
+
+	my $isWikiWord = $word =~ /$Foswiki::regex{wikiWordRegex}/;
+	my $hasNumber = $word =~ /regex{number}/;
+	my $hasUnderscore = $word =~ /_/;
 
 	if ($options->{splitBeforeNumbers}) {
         $word =~ s/($regex{number})/$WORDBREAK$1/g;
@@ -307,7 +347,7 @@ sub _smartBreak {
 		$word =~ s/($regex{number})/$1$WORDBREAK/g;
 	}
 
-	if ($options->{splitWikiWords} and $word =~ /$Foswiki::regex{wikiWordRegex}/) {
+	if ($options->{splitWikiWords} and $isWikiWord) {
 		# split before numbers in WikiWords
 		#$word =~ s/((?:$regex{numeric}|$regex{upperAlpha})$regex{mixedAlpha}+)($regex{numeric})/$1$WORDBREAK$2/g;
 
@@ -318,7 +358,7 @@ sub _smartBreak {
 		#$word =~ s/($regex{numeric})($regex{mixedAlpha})/$1$WORDBREAK$2/g;
 	}
 
-	if ($options->{splitAfterUnderscore} and $word =~ /_/) {
+	if ($options->{splitAfterUnderscore} and $hasUnderscore) {
 		# split after underscores
 		$word =~ s/([^_]+_+)(?=$regex{wordChar})(?!_)/$1$WORDBREAK/g;
 	}
@@ -328,20 +368,63 @@ sub _smartBreak {
 		$word =~ s/($regex{splitAfterPunctuation}+)(?=$regex{wordChar})/$1$WORDBREAK/g;
 	}
 
+	# hyphenate
+	if ($options->{hyphenate}) {
+		my $separator = '&shy;'; # soft hyphen
+		$separator = '<wbr>' if $isWikiWord or $hasUnderscore or $hasNumber;
+		$word =~ s/($regex{wordChar}+)/hyphenate($1, $separator)/ge;
+	}
+
 	# split every n characters
 	my $n = $options->{longestUnbrokenWord};
 	$word =~ s/((?:$regex{wordChar}){$n})(?=$regex{wordChar})/$1$WORDBREAK/g;
 
-    if ($optionsFromPreferences{typeOfWbr} eq 'unicode') { # browser-dependent check
+    if ($options->{typeOfWbr} eq 'unicode') { # browser-dependent check
 	    $word =~ s/<wbr>/&#8203;/g;
 	}
-    elsif ($optionsFromPreferences{typeOfWbr} eq 'span') { # browser-dependent check
+    elsif ($options->{typeOfWbr} eq 'span') { # browser-dependent check
 	    $word =~ s/<wbr>/<span style="font-size:1%"> <\/span>/g;
 	}
+
+	# Might help search engines
+	$word .= "<!-- $original -->" if $options->{originalInComment};
 
 	return $word;
 }
 
+###############################################################################
+sub getHyphen {
+  return $hyphen if $hyphen;
+  
+  require TeX::Hyphen;
+
+  # TODO: Make the style configurable
+  my $style = 'czech'; # also works for english
+  $hyphen = new TeX::Hyphen 'style' => $style;
+
+  return $hyphen;
+}
+
+###############################################################################
+sub hyphenate {
+	my ($word, $separator) = @_;
+
+	# Remove any trailing underscore
+	my $appendUnderscore = ($word =~ s/_$//);
+
+	my @places = getHyphen()->hyphenate($word);
+	while (@places) {
+		my $index = pop @places;
+		substr $word, $index, 0, $separator;
+	}
+
+	# Put the underscore back if it was there to start with.
+	$word .= '_' if $appendUnderscore;
+
+	return $word;
+}
+
+###############################################################################
 # _takeOutProtected( \$text, $re, $id, \%map ) -> $text
 #
 #   * =$text= - Text to process
@@ -377,6 +460,7 @@ sub _replaceBlock {
       . $Foswiki::TranslationToken . '-->';
 }
 
+###############################################################################
 # _putBackProtected( \$text, $id, \%map, $callback ) -> $text
 # Return value: $text with blocks added back
 #   * =\$text= - reference to text to process
