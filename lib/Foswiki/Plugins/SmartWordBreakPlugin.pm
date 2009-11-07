@@ -58,11 +58,11 @@ our $VERSION = '$Rev: 5154 $';
 # date    - a date in 1 Jun 2009 format. Three letter English month names only.
 # Note: it's important that this string is exactly the same in the extension
 # topic - if you use %$RELEASE% with BuildContrib this is done automatically.
-our $RELEASE = '31 Oct 2009';
+our $RELEASE = '07 Nov 2009';
 
 # Short description of this plugin
 # One line description, is shown in the %SYSTEMWEB%.TextFormattingRules topic:
-our $SHORTDESCRIPTION = 'Inserts word-breaks into long words';
+our $SHORTDESCRIPTION = 'Inserts word-breaks and soft hyphens into long words';
 
 # You must set $NO_PREFS_IN_TOPIC to 0 if you want your plugin to use
 # preferences set in the plugin topic. This is required for compatibility

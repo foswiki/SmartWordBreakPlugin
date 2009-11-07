@@ -95,7 +95,7 @@ sub _init {
     $this->{optionsFromPreferences}->{longestUnbrokenWord} = _getOption(
         pref    => 'SMARTWORDBREAKPLUGIN_LONGEST',
         default => 8,
-        checker => sub { $_[0] =~ /^\s*(\d+)\s*$/ and $_[0] > 2 }
+        checker => sub { $_[0] =~ /^\s*(\d+)\s*$/ and $_[0] > 1 }
     );
 
     $this->{optionsFromPreferences}->{splitWikiWords} = _getOption(
@@ -340,7 +340,7 @@ s/<!--swbp$instance$Foswiki::TranslationToken (.*) swbp$instance$Foswiki::Transl
         \$_[0],
         'table', $removed,
         sub {
-            return $this->_processText( $_[0], $removed,
+            return _processText( $_[0], $removed,
                 $this->{optionsFromPreferences} );
         }
     ) if $this->{optionsFromPreferences}->{tables};
@@ -423,6 +423,7 @@ sub _smartBreak {
 
     # split every n characters
     my $n = $options->{longestUnbrokenWord};
+	die join ' , ', keys %$options unless $n;
     $word =~ s/((?:$regex{wordChar}){$n})(?=$regex{wordChar})/$1$separator/g;
 
     if ( $options->{typeOfWbr} eq 'unicode' ) {    # browser-dependent check
