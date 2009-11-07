@@ -10,7 +10,7 @@
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details, published at 
+# GNU General Public License for more details, published at
 # http://www.gnu.org/copyleft/gpl.html
 
 =pod
@@ -32,7 +32,6 @@ the text had been included from another topic.
 
 =cut
 
-
 package Foswiki::Plugins::SmartWordBreakPlugin;
 
 # Always use strict to enforce variable scoping
@@ -40,7 +39,7 @@ use strict;
 
 use Assert;
 
-use Foswiki::Func ();       # The plugins API
+use Foswiki::Func    ();    # The plugins API
 use Foswiki::Plugins ();    # For the API version
 
 # $VERSION is referred to by Foswiki, and is the only global variable that
@@ -91,16 +90,18 @@ sub initPlugin {
         return 0;
     }
 
-	undef $core;
+    undef $core;
 
     Foswiki::Func::registerTagHandler( 'SMARTWORDBREAK', \&_SMARTWORDBREAK );
-    Foswiki::Func::registerTagHandler( 'WBR', \&_WBR );
+    Foswiki::Func::registerTagHandler( 'WBR',            \&_WBR );
 
-	if ( Foswiki::Func::getPreferencesFlag('SMARTWORDBREAKPLUGIN_WHOLEPAGE')
-	  or Foswiki::Func::getPreferencesFlag('SMARTWORDBREAKPLUGIN_TABLES') ) {
+    if (   Foswiki::Func::getPreferencesFlag('SMARTWORDBREAKPLUGIN_WHOLEPAGE')
+        or Foswiki::Func::getPreferencesFlag('SMARTWORDBREAKPLUGIN_TABLES') )
+    {
+
         # postRenderingHandler is required
         getCore();
-	}
+    }
 
     # Plugin correctly initialized
     return 1;
@@ -108,29 +109,29 @@ sub initPlugin {
 
 ###############################################################################
 sub getCore {
-  return $core if $core;
-  
-  require Foswiki::Plugins::SmartWordBreakPlugin::Core;
-  $core = new Foswiki::Plugins::SmartWordBreakPlugin::Core;
+    return $core if $core;
 
-  return $core;
+    require Foswiki::Plugins::SmartWordBreakPlugin::Core;
+    $core = new Foswiki::Plugins::SmartWordBreakPlugin::Core;
+
+    return $core;
 }
 
 ###############################################################################
 # The function used to handle the %SMARTWORDBREAK{...}% macro
 sub _SMARTWORDBREAK {
-  return getCore()->handleSMARTWORDBREAK(@_); 
+    return getCore()->handleSMARTWORDBREAK(@_);
 }
 
 ###############################################################################
 # The function used to handle the %WBR% macro
 sub _WBR {
-  return getCore()->handleWBR(@_); 
+    return getCore()->handleWBR(@_);
 }
 
 ###############################################################################
-sub postRenderingHandler { 
-    return unless $core; # no smart breaks needed
+sub postRenderingHandler {
+    return unless $core;    # no smart breaks needed
     $core->postRenderingHandler(@_);
 }
 
