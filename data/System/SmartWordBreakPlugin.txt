@@ -10,26 +10,97 @@ prefer.
 
 %TOC%
 
----++ Usage
+---++ Long words hurt
 
-Long words like can really mess up table formatting, making your page an untidy mess, 
-because browsers tend not to split words. You can tell the browser that it may, by using the &lt;wbr&gt; tag,
-but this tag is not supported by all browsers. In fact, there is [[http://www.quirksmode.org/oddsandends/wbr.html][*no* completely portable way to do this]].
-Besides, you would rather concentrate on content and not on irritating details like where to split long words.
+Long words make web pages harder to read. First prize is to use short words instead, but sometimes you cannot. 
+!WikiWords can be alarmly long e.g. SmartWordBreakPlugin, %SYSTEMWEB%.TextFormattingRules and %SYSTEMWEB%.HierarchicalNavigationChildExample.
+Technical content sometimes requires long words. For example, long names tend to crop up in software source code and thus also in the corresponding documentation. 
+Finally, some authors simply use (too many) long words, and sometimes there is not much you can do about it. 
+(When the Vice President uses long words, it might be more productive to celebrate that senior management is using the wiki and just live with the long words :) .)
 
-SmartWordBreakPlugin automatically inserts word-break markers for you. 
-It uses the correct form of word-break marker for your browser.
+Long words can make a mess of an otherwise-clean table layout. 
+Browsers tend not to split words automatically and 
+table columns must be wide enough for the longest word in each column. 
+Thus, long words make content interfere with presentation. 
 
-There are several reasons why words can end up long. !WikiWords can be alarmly long e.g. SmartWordBreakPlugin.
-Long names tend to crop up in software source code and thus also in the corresponding documentation. 
+You can tell the browser that it may split a word, by using the &lt;wbr&gt; tag,
+but this tag is not supported by all browsers. 
+In fact, there is [[http://www.quirksmode.org/oddsandends/wbr.html][*no* completely portable way]] to tell the browser that it may split a word.
 
-SmartWordBreakPlugin provides the SMARTWORDBREAK macro for selectively inserting word-breaks.
-Alternatively, the SMARTWORDBREAKPLUGIN_WHOLEPAGE preference enables processing for the whole page,
-but this can [[#WholePageProcessingCanHurtPerformance][hurt performance]].
+Besides, you would rather concentrate on content and let the wiki take care of presentation and portability issues 
+like choosing the correct word break for the browser and decding when and where to split long words.
 
----++ Examples
+---++ Split long words portably
 
-This table illustrates what SmartWordBreakPlugin does (change the window width to see the effect):
+SmartWordBreakPlugin lets you split long words portably. 
+The plugin inserts the correct form of word break for each browser.
+
+---++ How SmartWordBreakPlugin splits words
+
+SmartWordBreakPlugin uses a combination of approaches to split words.
+   * !WikiWords are split at the start of each word
+   * Words_With_Underscores are split after underscores
+   * Words breaks are inserted after punctuation
+   * Hyphenation (see below)
+
+SmartWordBreakPlugin inserts word breaks at these points. They inform the browser that it _may_ split the words at these points. 
+
+If hyphenation is enabled, SmartWordBreakPlugin tries to hyphenate words that are longer than the longest-unbroken-word-segment setting,
+which is controlled with the =SMARTWORDBREAKPLUGIN_LONGEST= preference and the =longest= parameter to %<nopSMARTWORDBREAK{...}%.
+
+The plugin will apply hyphenation both to ordinary words and to the segments of words split using other heuristics.
+The plugin inserts soft hyphens (&amp;shy;) into ordinary words. 
+Soft hyphens can look odd when inserted into !WikiWords and words_with_underscores, so the plugin inserts word breaks there instead.
+
+Some search engines do not handle word breaks and soft hyphens well; they may register the parts of thw word but not the whole word.
+This could render search facilities useless. To mitigate against this, SmartWordBreakPlugin inserts the unsplit (original) version of split words
+as an HTML comment.
+
+---++ Control which words are split
+
+The plugin is configurable. 
+You can adjust how aggressively and intelligently the plugin splits words, 
+and you can control which parts of each topic are processed. This is a tradeoff between convenience and performance. 
+At the one extreme, SmartWordBreakPlugin will split all long words on a wiki page using a combination of wiki-specific heuristics 
+and the TeX hyphenation algorithm, preserving the original text in HTML comments to assist search engines.
+At the other extreme, you can insert word breaks only where you want them.
+
+---+++ Automatic word breaks in tables
+Setting the =SMARTWORDBREAKPLUGIN_TABLES= preference makes the SmartWordBreakPlugin insert word breaks automatically in all tables on a page. 
+This preference probably provides the best balance between convenience and performance for most applications.
+
+The =SMARTWORDBREAKPLUGIN_LONGEST= and =SMARTWORDBREAKPLUGIN_HYPHENATE= preferences affect table-based insertion of word breaks.
+
+The table-based processing does not work well with nested tables, so it is _not_ useful with skins that use tables to lay out the page.
+
+---+++ Focussed automatic word breaks: %<nopSMARTWORDBREAK{...}%
+
+The %<nopSMARTWORDBREAK{...}% macro inserts word-breaks automatically. This macro lets you apply SmartWordBreakPlugin's automatic processing to a portion of a page.
+Using this macro, it is possible to [[#ProcessOneTable][automatically insert word breaks in a single table]].
+
+When hyphenation is disabled, the =longest= parameter specifies the maximum number of characters between word-breaks. 
+
+TODO: Document the macro parameters
+
+---+++ Calling all pockets: Automatic word breaks for whole pages
+
+The =SMARTWORDBREAKPLUGIN_WHOLEPAGE= preference enables processing for the whole page, including the header, footer and side-bar.
+This can [[#WholePageProcessingCanHurtPerformance][hurt performance]], so it should probably not be enabled in Main.SitePreferences.
+This preference may be useful on specific pages. 
+It may also be useful to wiki users who use narrow browser windows - they could set this preference in their user topic.
+
+The =SMARTWORDBREAKPLUGIN_LONGEST= and =SMARTWORDBREAKPLUGIN_HYPHENATE= preferences also affect whole-page processing.
+
+---+++ Maximum performance: Insert word breaks manually
+
+The %<nopWBR% macro inserts the correct form of word-break for your browser. You choose where to put the break; SmartWordBreakPlugin inserts the correct one.
+The %<nopWBR% macro has the lowest overhead of all options provided by the SmartWordBreakPlugin. 
+This macro may be tedious to use, and topics that use it may be more difficult to read when editing.
+This macro may also interfere with the wiki search facility.
+
+---++ Demonstration
+
+This table demonstrates what SmartWordBreakPlugin does (change the window width to see the effect):
 <verbatim>
 %TABLE{columnwidths="30%,70%"}%
 | *Selection* | *Manifestation* |
@@ -55,14 +126,33 @@ Without word-breaks:
 | Navigate_With_Euclidean_Geometry | Works for short distances, based on the approximation that the world is flat. |
 | Navigate_With_Elliptical_Geometry | Works for long distances. |
 
-%<nop>SMARTWORDBREAK{Long_Name}% produces Long_&lt;wbr&gt;Name.
+---++ Examples
 
-The =longest= parameter specifies the maximum number of characters between word-breaks.
-Thus, %<nop>SMARTWORDBREAK{"Mathematical Excursions" longest="7"}% produces Mathema&lt;wbr&gt;
+Insert a single word break:
+<verbatim>
+| *Name* | *Description* |
+| Very_Long_%WBR%Function_Name | Passes the foo to the crumblicator, which turns it into biscuits. This function is not re-entrant because foo cannot be articulated. |
+</verbatim>
 
----++ Typical use
+#ProcessOneTable
+Make SmartWordBreakPlugin process a single table:
+<verbatim>
+%SMARTWORDBREAK{"
+%TABLE{columnwidths="30%,70%"}%
+| *Selection* | *Manifestation* |
+| Navigate_With_Euclidean_Geometry | Works for short distances, based on the approximation that the world is flat. |
+| Navigate_With_Elliptical_Geometry | Works for long distances. |
+"}%
+</verbatim>
 
-Add this to specific pages to make SmartWordBreakPlugin process the whole of the page (probably the best way to use this plugin):
+Add this to specific pages to make SmartWordBreakPlugin process all tables on those pages (probably the best way to use this plugin):
+<literal><pre>
+&lt;!--
+   * Set<nop> SMARTWORDBREAKPLUGIN_TABLES=1
+--&gt;
+</pre></literal>
+
+Add this to a page to make SmartWordBreakPlugin process the whole of the page:
 <literal><pre>
 &lt;!--
    * Set<nop> SMARTWORDBREAKPLUGIN_WHOLEPAGE=1
@@ -74,18 +164,26 @@ Add this to specific pages to make SmartWordBreakPlugin process the whole of the
 Browsers do not all wrap text in the same way. Some browsers only respect word-breaks for text in tables.
 Others respect word-breaks for all text.
 
-SmartWordBreakPlugin does not understand lanuage; it does not try to split long words at hyphenation points.
-It simply chops up really-long words into fixed-length seqments
-For example, <code>%<nop>SMARTWORDBREAKPLUGIN{protoexistentialist}%</code> produces
-<code>protoexistentia&lt;wbr&gt;list</code> with the default settings.
+The =SMARTWORDBREAKPLUGIN_TABLES= preference does not work well with nested tables. 
+In consequence, it does not work well with skins that use tables for controlling the page layout.
 
-%<nop>SMARTWORDBREAK{}% breaks the automatic conversion of wikiwords into links.
+After attempting to split words using hyphenation rules, the plugin simply chops up any remaining long word-segments into shorter fixed-length seqments.
 
 #WholePageProcessingCanHurtPerformance
-SmartWordBreakPlugin can hurt performance. It is better to use it only where it is needed. 
-Use %<nop>SMARTWORDBREAK{}% in preference to setting SMARTWORDBREAKPLUGIN_WHOLEPAGE to true.
-Set SMARTWORDBREAKPLUGIN_WHOLEPAGE to true for a single page in preference to setting it true for a whole web.
-Set it to true for a single web in preference to setting it true for a whole site.
+---++ Performance considerations
+SmartWordBreakPlugin can hurt performance. It is better to use it only where it is needed, and to avoid widespread hyphenation.
+
+Only use the plugin where it is needed:
+   * Use %<nop>SMARTWORDBREAK{}% in preference to setting SMARTWORDBREAKPLUGIN_TABLES to true.
+   * Set SMARTWORDBREAKPLUGIN_TABLES to true for a single page in preference to setting it true for a whole web.
+   * Set SMARTWORDBREAKPLUGIN_TABLES to true for a single web in preference to setting it true for a whole site.
+   * Avoid using SMARTWORDBREAKPLUGIN_WHOLEPAGE, unless you really need the _whole page_ (including header and footer) processed,
+     or you really do not mind the performance hit.
+
+Hyphenation hurts performance too:
+   * Only enable hyphenation where it is needed.
+   * Reduce the number of words to be hyphenated by increasing the length of the longest unsplit word-segment
+     (use the =longest= parameter or the SMARTWORDBREAKPLUGIN_LONGEST preference).
 
 ---++ Installation Instructions
 
@@ -97,10 +195,28 @@ No preferences are stored in this topic. The example settings here have no effec
 To learn more about setting preference variables, see the %SYSTEMWEB%.PreferenceSettings topic. 
 
 | *Variable* | *Default* | *Description* |
-| =SMARTWORDBREAKPLUGIN_WHOLEPAGE= | false | Enables processing of the whole web page. Word-breaks are inserted in link text, but links still point to the same places. This works better than %<nop>SMARTWORDBREAK{}%, but it is slower, so this preference should only be set on the pages where it is needed. |
-| =SMARTWORDBREAKPLUGIN_LONGEST= | 15 | Sets the length of the longest unbroken sequence of letters. This preference affects the whole page when using the SMARTWORDBREAKPLUGIN_WHOLEPAGE setting. It also sets the default for the =longest= parameter to  %<nop>SMARTWORDBREAK{}%. |
-| =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR= | (?i-xsm:Opera&#124;MSIE 8) | Specifies when to use a unicode character instead of a &lt;wbr&gt; tag. It may be a regular expression, which is applied to the user-agent string from the browser, or it may be a boolean value. If it is a regular expression, and it matches the user-agent string, then SmartWordBreakPlugin inserts unicode character 8203 instead of wbr tags. If it has a boolean-type value (e.g. true, false, 1 or 0), and it is false, then SmartWordBreakPlugin never inserts unicode word-break characters. If it is a boolean-type true value, then SmartWordBreakPlugin always inserts unicode word-break characters instead of wbr tags. |
-| =SMARTWORDBREAKPLUGIN_NEEDS_SPAN_WBR= | false | Similar to =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR=, but it controls the insertion of narrow &lt;span&gt;s instead of &lt;wbr&gt; tags. Only one of =SMARTWORDBREAKPLUGIN_NEEDS_UNICODE_WBR= and =SMARTWORDBREAKPLUGIN_NEEDS_SPAN_WBR= should ever be active at a time. (You won't break anything if you do, but the behaviour is not specified so don't depend on it.) |
+| =SMARTWORDBREAKPLUGIN_WHOLEPAGE= | false | Enables processing of the whole web page. |
+| =SMARTWORDBREAKPLUGIN_TABLES= | false | Enables processing of all text in tables. This should be faster than =SMARTWORDBREAKPLUGIN_WHOLEPAGE=. This works better than %<nop>SMARTWORDBREAK{}%, but it is slower, so this preference should only be set on the pages where it is needed. If =SMARTWORDBREAKPLUGIN_WHOLEPAGE= is true, then =SMARTWORDBREAKPLUGIN_TABLES= is ignored. |
+| =SMARTWORDBREAKPLUGIN_LONGEST= | 8 | Sets the length of the longest unbroken sequence of letters. This preference affects the whole page when using the =SMARTWORDBREAKPLUGIN_WHOLEPAGE= setting, or all tables when using the =SMARTWORDBREAKPLUGIN_TABLES= setting. It also sets the default value for the =longest= parameter to  %<nop>SMARTWORDBREAK{}%. |
+| =SMARTWORDBREAKPLUGIN_HYPHENATE= | true | Enables hyphenation i.e. splitting words at hyphenation points. This preference affects the whole page when using the =SMARTWORDBREAKPLUGIN_WHOLEPAGE= setting, or all tables when using the =SMARTWORDBREAKPLUGIN_TABLES= setting. It also sets the default value for the =hyphenate= parameter to  %<nop>SMARTWORDBREAK{}%. |
+
+---++ Configuration
+
+Some SmartWordBreakPlugin settings affect the whole site, and are not intended to have different values for different topics and/or webs.
+These settings are adjustable via =configure=. The default settings are suitable for english.
+
+Hyphenation configuration files for additional languages are available from http://www.ctan.org/tex-archive/language/.
+Load the configuration file for your language onto your server and set the path to that configuration file via =configure=.
+For more information, see TeX::Hyphen on [[http://search.cpan.org][CPAN]].
+
+---++ Supported browsers
+
+This plugin should support the following browsers:
+   * Internet Explorer 6, 7 and 8
+   * Firefox 2.x and 3.x
+   * Opera 10.x
+
+The list is not exhaustive.
 
 ---++ Info
 
