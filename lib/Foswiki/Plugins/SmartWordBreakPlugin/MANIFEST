@@ -1,6 +1,7 @@
 # Release manifest for SmartWordBreakPlugin
 data/System/SmartWordBreakPlugin.txt 0644 Documentation
 lib/Foswiki/Plugins/SmartWordBreakPlugin.pm 0644 Perl module
+lib/Foswiki/Plugins/SmartWordBreakPlugin/Core.pm 0644 Perl module
 lib/Foswiki/Plugins/SmartWordBreakPlugin/Config.spec 0644
 lib/CPAN/lib/TeX/Hyphen.pm 0644 Perl module
 lib/CPAN/lib/TeX/Hyphen/czech.pm 0644 Perl module
