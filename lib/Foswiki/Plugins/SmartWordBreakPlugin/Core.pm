@@ -10,7 +10,7 @@
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details, published at 
+# GNU General Public License for more details, published at
 # http://www.gnu.org/copyleft/gpl.html
 
 =pod
@@ -32,7 +32,6 @@ the text had been included from another topic.
 
 =cut
 
-
 package Foswiki::Plugins::SmartWordBreakPlugin::Core;
 
 # Always use strict to enforce variable scoping
@@ -40,11 +39,11 @@ use strict;
 
 use Assert;
 
-use Foswiki::Func ();       # The plugins API
+use Foswiki::Func    ();    # The plugins API
 use Foswiki::Plugins ();    # For the API version
 
 my @protectTags = qw/head textarea script style/;
-	
+
 my $WORDBREAK = '<wbr>';
 
 my %regex;
@@ -58,14 +57,14 @@ sub new {
     my $class = shift;
 
     my $this = {
-		smartwordbreakOptions => {},
-		smartwordbreakCount => 0,
-		optionsFromPreferences => {},
+        smartwordbreakOptions  => {},
+        smartwordbreakCount    => 0,
+        optionsFromPreferences => {},
 
-      @_
+        @_
     };
 
-    return bless($this, $class);
+    return bless( $this, $class );
 }
 
 ###############################################################################
@@ -77,134 +76,153 @@ sub _init {
     return if $this->{isInitialized};
     $this->{isInitialized} = 1;
 
+    $this->{optionsFromPreferences}->{wholePage} = _getOption(
+        pref    => 'SMARTWORDBREAKPLUGIN_WHOLEPAGE',
+        default => 0,
+        bool    => 1
+    );
+    if ( $this->{optionsFromPreferences}->{wholePage} ) {
+        $this->{optionsFromPreferences}->{tables} = 0;
+    }
+    else {
+        $this->{optionsFromPreferences}->{tables} = _getOption(
+            pref    => 'SMARTWORDBREAKPLUGIN_TABLES',
+            default => 0,
+            bool    => 1
+        );
+    }
 
-	$this->{optionsFromPreferences}->{wholePage} = _getOption(pref => 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 
-		                                            default => 0, 
-													bool => 1);
-	if ($this->{optionsFromPreferences}->{wholePage}) {
-		$this->{optionsFromPreferences}->{tables} = 0;
-	}
-	else {
-    	$this->{optionsFromPreferences}->{tables} = _getOption(pref => 'SMARTWORDBREAKPLUGIN_TABLES', 
-			                                         default => 0, 
-													 bool => 1);
-	}
+    $this->{optionsFromPreferences}->{longestUnbrokenWord} = _getOption(
+        pref    => 'SMARTWORDBREAKPLUGIN_LONGEST',
+        default => 8,
+        checker => sub { $_[0] =~ /^\s*(\d+)\s*$/ and $_[0] > 2 }
+    );
 
-	$this->{optionsFromPreferences}->{longestUnbrokenWord} = _getOption(pref => 'SMARTWORDBREAKPLUGIN_LONGEST', 
-		                                                      default => 8, 
-													          checker => sub { $_[0] =~ /^\s*(\d+)\s*$/ and $_[0] > 2 });
+    $this->{optionsFromPreferences}->{splitWikiWords} = _getOption(
+        cfg     => 'SplitWikiWords',
+        default => 1,
+        bool    => 1
+    );
 
-	$this->{optionsFromPreferences}->{splitWikiWords} = _getOption(cfg => 'SplitWikiWords',
-		                                                 default => 1,
-														 bool => 1);
+    $this->{optionsFromPreferences}->{splitAfterUnderscore} = _getOption(
+        cfg     => 'SplitAfterUnderscore',
+        default => 1,
+        bool    => 1
+    );
 
-	$this->{optionsFromPreferences}->{splitAfterUnderscore} = _getOption(cfg => 'SplitAfterUnderscore',
-		                                                       default => 1,
-														       bool => 1);
+    $this->{optionsFromPreferences}->{splitAfterPunctuation} = 1;
 
-	$this->{optionsFromPreferences}->{splitAfterPunctuation} = 1;
+    $this->{optionsFromPreferences}->{hyphenate} = _getOption(
+        pref    => 'SMARTWORDBREAKPLUGIN_HYPHENATE',
+        default => 1,
+        bool    => 1
+    );
 
-	$this->{optionsFromPreferences}->{hyphenate} = _getOption(pref => 'SMARTWORDBREAKPLUGIN_HYPHENATE', 
-		                                            default => 1, 
-													bool => 1);
+    $this->{optionsFromPreferences}->{splitBeforeNumbers} = 0;
 
-	$this->{optionsFromPreferences}->{splitBeforeNumbers} = 0;
+    $this->{optionsFromPreferences}->{splitAfterNumbers} = 0;
 
-	$this->{optionsFromPreferences}->{splitAfterNumbers} = 0;
+    $this->{optionsFromPreferences}->{originalInComment} = _getOption(
+        cfg     => 'OriginalInComment',
+        default => 1,
+        bool    => 1
+    );
 
-	$this->{optionsFromPreferences}->{originalInComment} = _getOption(cfg => 'OriginalInComment',
-		                                                    default => 1, 
-													        bool => 1);
-
-	my $unicodeBrowsers = _getOption(cfg => 'UnicodeBrowsers',
-		                             default => '(?i-xsm:Opera|MSIE 8)');
+    my $unicodeBrowsers = _getOption(
+        cfg     => 'UnicodeBrowsers',
+        default => '(?i-xsm:Opera|MSIE 8)'
+    );
 
     my $query = Foswiki::Func::getCgiQuery();
-	my $ua;
-	if ($query) {
+    my $ua;
+    if ($query) {
         $ua = $query->user_agent();
-	}
-	if (defined $ua and $ua =~ /$unicodeBrowsers/) {
-		$this->{optionsFromPreferences}->{typeOfWbr} = 'unicode';
-	}
-	else {
-	    $this->{optionsFromPreferences}->{typeOfWbr} = 'wbr';
-	}
+    }
+    if ( defined $ua and $ua =~ /$unicodeBrowsers/ ) {
+        $this->{optionsFromPreferences}->{typeOfWbr} = 'unicode';
+    }
+    else {
+        $this->{optionsFromPreferences}->{typeOfWbr} = 'wbr';
+    }
 
-	_initRegex();
-
-}
-
-###############################################################################
-sub _initRegex
-{
-	return if $regex{isInitialized};
-
-	my $wordPunctuation = q/"'!_/;
-	my $splitAfterPunctuation = "\\\\" . "\\/" . "\\]" . "[=+:#^,.;(){}-"; # the dash must be last, caret must not be first, / and \ and ] must be escaped
-
-	$regex{lowerAlpha} = _makeRegex($Foswiki::regex{lowerAlpha});
-	$regex{notLowerAlpha} = _makeRegex('^', $Foswiki::regex{lowerAlpha});
-	$regex{upperAlpha} = _makeRegex($Foswiki::regex{upperAlpha});
-	$regex{notUpperAlpha} = _makeRegex('^', $Foswiki::regex{upperAlpha});
-	$regex{mixedAlpha} = _makeRegex($Foswiki::regex{mixedAlpha});
-	$regex{notMixedAlpha} = _makeRegex('^', $Foswiki::regex{mixedAlpha});
-	$regex{wordChar} = _makeRegex($Foswiki::regex{mixedAlphaNum}, $wordPunctuation);
-	$regex{notWordChar} = _makeRegex('^', $Foswiki::regex{mixedAlphaNum}, $wordPunctuation);
-	$regex{splitAfterPunctuation} = _makeRegex($splitAfterPunctuation);
-	$regex{splittable} = _makeRegex($Foswiki::regex{mixedAlphaNum}, $wordPunctuation, $splitAfterPunctuation);
-	$regex{numeric} = _makeRegex($Foswiki::regex{numeric});
-	$regex{number} = qr/[+-]?$Foswiki::regex{numeric}+(?:\.$Foswiki::regex{numeric}+)?/o;
-
-	$regex{tagPattern} = qr/<[!\/a-z][^>]*?>|&(?:\w+|#\d+);/oi;
-	$regex{splittableSequence} = qr/$regex{splittable}+/o;
-
-	$regex{isInitialized} = 1;
+    _initRegex();
 
 }
 
 ###############################################################################
-sub _getOption
-{
-	my %params = @_;
+sub _initRegex {
+    return if $regex{isInitialized};
 
-	$params{default} = '' if not defined $params{default};
-	my $value = $params{default};
+    my $wordPunctuation       = q/"'!_/;
+    my $splitAfterPunctuation = "\\\\" . "\\/" . "\\]"
+      . "[=+:#^,.;(){}-"
+      ; # the dash must be last, caret must not be first, / and \ and ] must be escaped
 
-	if ($params{cfg}) {
-	    my $cfg = $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{ $params{cfg} };
-		$value = $cfg if defined $cfg;
-	}
+    $regex{lowerAlpha}    = _makeRegex( $Foswiki::regex{lowerAlpha} );
+    $regex{notLowerAlpha} = _makeRegex( '^', $Foswiki::regex{lowerAlpha} );
+    $regex{upperAlpha}    = _makeRegex( $Foswiki::regex{upperAlpha} );
+    $regex{notUpperAlpha} = _makeRegex( '^', $Foswiki::regex{upperAlpha} );
+    $regex{mixedAlpha}    = _makeRegex( $Foswiki::regex{mixedAlpha} );
+    $regex{notMixedAlpha} = _makeRegex( '^', $Foswiki::regex{mixedAlpha} );
+    $regex{wordChar} =
+      _makeRegex( $Foswiki::regex{mixedAlphaNum}, $wordPunctuation );
+    $regex{notWordChar} =
+      _makeRegex( '^', $Foswiki::regex{mixedAlphaNum}, $wordPunctuation );
+    $regex{splitAfterPunctuation} = _makeRegex($splitAfterPunctuation);
+    $regex{splittable}            = _makeRegex( $Foswiki::regex{mixedAlphaNum},
+        $wordPunctuation, $splitAfterPunctuation );
+    $regex{numeric} = _makeRegex( $Foswiki::regex{numeric} );
+    $regex{number} =
+      qr/[+-]?$Foswiki::regex{numeric}+(?:\.$Foswiki::regex{numeric}+)?/o;
 
-	if ($params{pref}) {
-		my $pref = Foswiki::Func::getPreferencesValue( $params{pref} );
-		$value = $pref if defined $pref;
-	}
+    $regex{tagPattern}         = qr/<[!\/a-z][^>]*?>|&(?:\w+|#\d+);/oi;
+    $regex{splittableSequence} = qr/$regex{splittable}+/o;
 
-	if ($params{bool}) {
-		$value = Foswiki::Func::isTrue($value);
-	}
+    $regex{isInitialized} = 1;
 
-	if ($params{checker}) {
-		$value = $params{default} unless $params{checker}->($value);
-	}
-
-	return $value;
 }
 
 ###############################################################################
-sub _makeRegex
-{
-	my $string = join( '', 'qr/[', @_, ']/o' );
-	my $regex = eval $string;
-	die $@ if $@;
-	return $regex;
+sub _getOption {
+    my %params = @_;
+
+    $params{default} = '' if not defined $params{default};
+    my $value = $params{default};
+
+    if ( $params{cfg} ) {
+        my $cfg = $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{ $params{cfg} };
+        $value = $cfg if defined $cfg;
+    }
+
+    if ( $params{pref} ) {
+        my $pref = Foswiki::Func::getPreferencesValue( $params{pref} );
+        $value = $pref if defined $pref;
+    }
+
+    if ( $params{bool} ) {
+        $value = Foswiki::Func::isTrue($value);
+    }
+
+    if ( $params{checker} ) {
+        $value = $params{default} unless $params{checker}->($value);
+    }
+
+    return $value;
+}
+
+###############################################################################
+sub _makeRegex {
+    my $string = join( '', 'qr/[', @_, ']/o' );
+    my $regex = eval $string;
+    die $@ if $@;
+    return $regex;
 }
 
 ###############################################################################
 # The function used to handle the %SMARTWORDBREAK{...}% macro
 sub handleSMARTWORDBREAK {
-    my($this, $session, $params, $theTopic, $theWeb) = @_;
+    my ( $this, $session, $params, $theTopic, $theWeb ) = @_;
+
     # $session  - a reference to the Foswiki session object (if you don't know
     #             what this is, just ignore it)
     # $params=  - a reference to a Foswiki::Attrs object containing
@@ -220,42 +238,46 @@ sub handleSMARTWORDBREAK {
     # For example, %EXAMPLETAG{'hamburger' sideorder="onions"}%
     # $params->{_DEFAULT} will be 'hamburger'
     # $params->{sideorder} will be 'onions'
-	
-	$this->_init();
 
-	my %options = %{ $this->{optionsFromPreferences} };
+    $this->_init();
 
-	if (exists $params->{longest} and $params->{longest} =~ /^(\d+)$/ and $1 > 1) {
-    	$options{longestUnbrokenWord} = $1;
-	}
+    my %options = %{ $this->{optionsFromPreferences} };
 
-	$options{hyphenate} = Foswiki::Func::isTrue( $params->{hyphenate} ) if exists $params->{hyphenate};
+    if (    exists $params->{longest}
+        and $params->{longest} =~ /^(\d+)$/
+        and $1 > 1 )
+    {
+        $options{longestUnbrokenWord} = $1;
+    }
 
-	my $instance = $this->{smartwordbreakCount};
-	$this->{smartwordbreakCount}++;
+    $options{hyphenate} = Foswiki::Func::isTrue( $params->{hyphenate} )
+      if exists $params->{hyphenate};
 
-	$this->{smartwordbreakOptions}->{$instance} = \%options;
+    my $instance = $this->{smartwordbreakCount};
+    $this->{smartwordbreakCount}++;
 
-	return "<!--swbp$instance$Foswiki::TranslationToken $params->{_DEFAULT} swbp$instance$Foswiki::TranslationToken-->";
+    $this->{smartwordbreakOptions}->{$instance} = \%options;
+
+    return
+"<!--swbp$instance$Foswiki::TranslationToken $params->{_DEFAULT} swbp$instance$Foswiki::TranslationToken-->";
 }
 
 ###############################################################################
 # The function used to handle the %WBR% macro
 sub handleWBR {
-	my ($this) = @_;
+    my ($this) = @_;
 
-	$this->_init();
+    $this->_init();
 
     # browser-dependent check
-	if ($this->{optionsFromPreferences}->{typeOfWbr} eq 'wbr') {
-		return '<wbr>';
-	}
-	if ($this->{optionsFromPreferences}->{typeOfWbr} eq 'unicode') {
-	    return '&#8203;';
-	}
-	return '';
+    if ( $this->{optionsFromPreferences}->{typeOfWbr} eq 'wbr' ) {
+        return '<wbr>';
+    }
+    if ( $this->{optionsFromPreferences}->{typeOfWbr} eq 'unicode' ) {
+        return '&#8203;';
+    }
+    return '';
 }
-
 
 =begin TML
 
@@ -274,170 +296,186 @@ Since Foswiki::Plugins::VERSION = '2.0'
 
 ###############################################################################
 sub postRenderingHandler {
-	my $this = shift;
-	#my( $text ) = @_;
+    my $this = shift;
+
+    #my( $text ) = @_;
 
     # You can work on $text in place by using the special perl
     # variable $_[0]. These allow you to operate on $text
     # as if it was passed by reference; for example:
     # $_[0] =~ s/SpecialString/my alternative/ge;
 
-	$this->_init();
+    $this->_init();
 
-	my @instances = keys %{ $this->{smartwordbreakOptions} };
-	if (@instances) {
-		my $removed = { placeholderMarkerCount => 0 };
+    my @instances = keys %{ $this->{smartwordbreakOptions} };
+    if (@instances) {
+        my $removed = { placeholderMarkerCount => 0 };
 
-		for my $instance (sort @instances) {
-			$_[0] =~ s/<!--swbp$instance$Foswiki::TranslationToken (.*) swbp$instance$Foswiki::TranslationToken-->/_processText($1, $removed, $this->{smartwordbreakOptions}->{$instance})/se
-				and delete $this->{smartwordbreakOptions}->{$instance};
-		}
-	}
-	
-	return unless $this->{optionsFromPreferences}->{wholePage} or $this->{optionsFromPreferences}->{tables};
-
-	my $removed = { placeholderMarkerCount => 0 };
-
-	for my $tag (@protectTags) {
-        $_[0] = _takeOutProtected( $_[0], qr/<$tag\b.*?<\/$tag>/si, $tag, $removed );
+        for my $instance ( sort @instances ) {
+            $_[0] =~
+s/<!--swbp$instance$Foswiki::TranslationToken (.*) swbp$instance$Foswiki::TranslationToken-->/_processText($1, $removed, $this->{smartwordbreakOptions}->{$instance})/se
+              and delete $this->{smartwordbreakOptions}->{$instance};
+        }
     }
 
-    $_[0] = _takeOutProtected( $_[0], qr/<table\b.*?<\/table>/si, 'table', $removed )
-	  if $this->{optionsFromPreferences}->{tables};
+    return
+      unless $this->{optionsFromPreferences}->{wholePage}
+          or $this->{optionsFromPreferences}->{tables};
 
-	$_[0] = _processText($_[0], $removed, $this->{optionsFromPreferences})
-	  if $this->{optionsFromPreferences}->{wholePage};
+    my $removed = { placeholderMarkerCount => 0 };
 
-    _putBackProtected( \$_[0], 'table', $removed, 
-		sub {
-			return $this->_processText($_[0], $removed, $this->{optionsFromPreferences}); 
-		})
-	  if $this->{optionsFromPreferences}->{tables};
+    for my $tag (@protectTags) {
+        $_[0] =
+          _takeOutProtected( $_[0], qr/<$tag\b.*?<\/$tag>/si, $tag, $removed );
+    }
 
-	for my $tag (reverse @protectTags) {
-		_putBackProtected( \$_[0], $tag, $removed );
-	}
+    $_[0] =
+      _takeOutProtected( $_[0], qr/<table\b.*?<\/table>/si, 'table', $removed )
+      if $this->{optionsFromPreferences}->{tables};
+
+    $_[0] = _processText( $_[0], $removed, $this->{optionsFromPreferences} )
+      if $this->{optionsFromPreferences}->{wholePage};
+
+    _putBackProtected(
+        \$_[0],
+        'table', $removed,
+        sub {
+            return $this->_processText( $_[0], $removed,
+                $this->{optionsFromPreferences} );
+        }
+    ) if $this->{optionsFromPreferences}->{tables};
+
+    for my $tag ( reverse @protectTags ) {
+        _putBackProtected( \$_[0], $tag, $removed );
+    }
 }
 
 ###############################################################################
-sub _processText
-{
-	my ($text, $removed, $options) = @_;
+sub _processText {
+    my ( $text, $removed, $options ) = @_;
 
-	$text = _takeOutProtected( $text, qr/<[\/!]?[a-z][^>]*>/si, 'anytag', $removed );
+    $text =
+      _takeOutProtected( $text, qr/<[\/!]?[a-z][^>]*>/si, 'anytag', $removed );
 
-	my @text = split /($regex{tagPattern})/o, $text;
-	for my $portion (@text) {
-		next if $portion =~ /^$regex{tagPattern}$/o;
-		$portion =~ s/($regex{splittableSequence})/_smartBreak($1,$options)/ge;
-	}
-	$text = join('', @text);
+    my @text = split /($regex{tagPattern})/o, $text;
+    for my $portion (@text) {
+        next if $portion =~ /^$regex{tagPattern}$/o;
+        $portion =~ s/($regex{splittableSequence})/_smartBreak($1,$options)/ge;
+    }
+    $text = join( '', @text );
 
     _putBackProtected( \$text, 'anytag', $removed );
 
-	return $text;
+    return $text;
 }
 
 ###############################################################################
 sub _smartBreak {
-	my ($word, $options) = @_;
+    my ( $word, $options ) = @_;
 
-	my $original = $word;
+    my $original = $word;
 
-	my $isWikiWord = $word =~ /$Foswiki::regex{wikiWordRegex}/;
-	my $hasNumber = $word =~ /$regex{number}/;
-	my $hasUnderscore = $word =~ /_/;
+    my $isWikiWord    = $word =~ /$Foswiki::regex{wikiWordRegex}/;
+    my $hasNumber     = $word =~ /$regex{number}/;
+    my $hasUnderscore = $word =~ /_/;
 
-	if ($options->{splitBeforeNumbers}) {
+    if ( $options->{splitBeforeNumbers} ) {
         $word =~ s/($regex{number})/$WORDBREAK$1/g;
-	}
+    }
 
-	if ($options->{splitAfterNumbers}) {
-		$word =~ s/($regex{number})/$1$WORDBREAK/g;
-	}
+    if ( $options->{splitAfterNumbers} ) {
+        $word =~ s/($regex{number})/$1$WORDBREAK/g;
+    }
 
-	if ($options->{splitWikiWords} and $isWikiWord) {
-		# split before numbers in WikiWords
-		#$word =~ s/((?:$regex{numeric}|$regex{upperAlpha})$regex{mixedAlpha}+)($regex{numeric})/$1$WORDBREAK$2/g;
+    if ( $options->{splitWikiWords} and $isWikiWord ) {
 
-		# split on Capitals in WikiWords
-		$word =~ s/($regex{lowerAlpha})($regex{upperAlpha})/$1$WORDBREAK$2/g;
+# split before numbers in WikiWords
+#$word =~ s/((?:$regex{numeric}|$regex{upperAlpha})$regex{mixedAlpha}+)($regex{numeric})/$1$WORDBREAK$2/g;
 
-		# split after numbers in WikiWords
-		#$word =~ s/($regex{numeric})($regex{mixedAlpha})/$1$WORDBREAK$2/g;
-	}
+        # split on Capitals in WikiWords
+        $word =~ s/($regex{lowerAlpha})($regex{upperAlpha})/$1$WORDBREAK$2/g;
 
-	if ($options->{splitAfterUnderscore} and $hasUnderscore) {
-		# split after underscores
-		$word =~ s/([^_]+_+)(?=$regex{wordChar})(?!_)/$1$WORDBREAK/g;
-	}
+        # split after numbers in WikiWords
+        #$word =~ s/($regex{numeric})($regex{mixedAlpha})/$1$WORDBREAK$2/g;
+    }
 
-	if ($options->{splitAfterPunctuation}) {
-		# split after punctuation
-		$word =~ s/($regex{splitAfterPunctuation}+)(?=$regex{wordChar})/$1$WORDBREAK/g;
-	}
+    if ( $options->{splitAfterUnderscore} and $hasUnderscore ) {
 
-	my $separator = '&shy;'; # soft hyphen
-	$separator = $WORDBREAK if $isWikiWord or $hasUnderscore or $hasNumber;
+        # split after underscores
+        $word =~ s/([^_]+_+)(?=$regex{wordChar})(?!_)/$1$WORDBREAK/g;
+    }
 
-	# hyphenate
-	if ($options->{hyphenate}) {
-		my $min = $options->{longestUnbrokenWord} + 1;
-		$word =~ s/((?:$regex{wordChar}){$min,})/hyphenate($1, $separator)/ge;
-	}
+    if ( $options->{splitAfterPunctuation} ) {
 
-	# split every n characters
-	my $n = $options->{longestUnbrokenWord};
-	$word =~ s/((?:$regex{wordChar}){$n})(?=$regex{wordChar})/$1$separator/g;
+        # split after punctuation
+        $word =~
+          s/($regex{splitAfterPunctuation}+)(?=$regex{wordChar})/$1$WORDBREAK/g;
+    }
 
-    if ($options->{typeOfWbr} eq 'unicode') { # browser-dependent check
-	    $word =~ s/$WORDBREAK/&#8203;/go;
-	}
+    my $separator = '&shy;';    # soft hyphen
+    $separator = $WORDBREAK if $isWikiWord or $hasUnderscore or $hasNumber;
 
-	# Might help search engines
-	$word .= "<!-- $original -->" if $word ne $original and $options->{originalInComment};
+    # hyphenate
+    if ( $options->{hyphenate} ) {
+        my $min = $options->{longestUnbrokenWord} + 1;
+        $word =~ s/((?:$regex{wordChar}){$min,})/hyphenate($1, $separator)/ge;
+    }
 
-	return $word;
+    # split every n characters
+    my $n = $options->{longestUnbrokenWord};
+    $word =~ s/((?:$regex{wordChar}){$n})(?=$regex{wordChar})/$1$separator/g;
+
+    if ( $options->{typeOfWbr} eq 'unicode' ) {    # browser-dependent check
+        $word =~ s/$WORDBREAK/&#8203;/go;
+    }
+
+    # Might help search engines
+    $word .= "<!-- $original -->"
+      if $word ne $original and $options->{originalInComment};
+
+    return $word;
 }
 
 ###############################################################################
 sub getHyphen {
-  return $hyphen if $hyphen;
-  
-  require TeX::Hyphen;
+    return $hyphen if $hyphen;
 
-  my $style = $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenStyle}
-    || 'czech';
-  my @hyphenOptions = ( style => $style );
-  push @hyphenOptions, file => $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenLanguagePath}
-    if $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenLanguagePath};
+    require TeX::Hyphen;
 
-  # TODO - make this more robust
-  $hyphen = new TeX::Hyphen @hyphenOptions;
+    my $style = $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenStyle}
+      || 'czech';
+    my @hyphenOptions = ( style => $style );
+    push @hyphenOptions,
+      file =>
+      $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenLanguagePath}
+      if $Foswiki::cfg{Plugins}{SmartWordBreakPlugin}{TeXHyphenLanguagePath};
 
-  return $hyphen;
+    # TODO - make this more robust
+    $hyphen = new TeX::Hyphen @hyphenOptions;
+
+    return $hyphen;
 }
 
 ###############################################################################
 sub hyphenate {
-	my ($word, $separator) = @_;
+    my ( $word, $separator ) = @_;
 
-	# Remove any trailing underscore
-	my $trailingUnderscore = '';
-	if ($word =~ s/(_+)$//) {
-		$trailingUnderscore = $1;
-	}
+    # Remove any trailing underscore
+    my $trailingUnderscore = '';
+    if ( $word =~ s/(_+)$// ) {
+        $trailingUnderscore = $1;
+    }
 
-	my @places = getHyphen()->hyphenate($word);
-	while (@places) {
-		my $index = pop @places;
-		substr $word, $index, 0, $separator;
-	}
+    my @places = getHyphen()->hyphenate($word);
+    while (@places) {
+        my $index = pop @places;
+        substr $word, $index, 0, $separator;
+    }
 
-	# Put the underscore back if it was there to start with.
-	$word .= $trailingUnderscore;
+    # Put the underscore back if it was there to start with.
+    $word .= $trailingUnderscore;
 
-	return $word;
+    return $word;
 }
 
 ###############################################################################
@@ -498,6 +536,5 @@ s/<!--$Foswiki::TranslationToken$placeholder$Foswiki::TranslationToken-->/$val/;
         delete( $map->{$placeholder} );
     }
 }
-
 
 1;
