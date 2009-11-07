@@ -38,7 +38,7 @@ sub tear_down {
 sub test_noChangeToPlainWords {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{Some plain words}%
@@ -74,7 +74,7 @@ END_EXPECTED
 sub test_noSplitAtQuotes {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"Jim's \"simple speech\""}%
@@ -90,8 +90,8 @@ END_EXPECTED
 sub test_split_after_underscore {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 99);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   99 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{Split_after__Underscore}%
@@ -107,7 +107,7 @@ END_EXPECTED
 sub test_noSplitAfterUnderscoreAtEnd {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{Alpha beta_ Gamma__ Delta__ Chicken}%
@@ -123,7 +123,7 @@ END_EXPECTED
 sub test_splitWikiWord {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{SplitWikiWord}%
@@ -153,7 +153,7 @@ END_EXPECTED
 sub test_hyphenateWordOverridePreference {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"representation" hyphenate="1" longest="5"}%
@@ -183,8 +183,9 @@ END_EXPECTED
 sub test_splitWikiWordHyphenated {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 1);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', length('Internal'));
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 1 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',
+        length('Internal') );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{InternalRepresentation}%
@@ -200,8 +201,9 @@ END_EXPECTED
 sub test_splitWordWithUnderscoresHyphenated {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 1);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', length('Internal_'));
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 1 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',
+        length('Internal_') );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{Internal_Representation}%
@@ -217,16 +219,17 @@ END_EXPECTED
 sub test_wikiWordLink {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{System.WikiWord}%
 END_SOURCE
 
-    my $expected = Foswiki::Func::renderText( 'System.WikiWord', 
-		                                      $this->{test_web}, 
-											  $this->{test_topic} );
-	$this->assert($expected =~ s/>WikiWord</>Wiki<wbr>Word<!-- WikiWord --></);
+    my $expected =
+      Foswiki::Func::renderText( 'System.WikiWord', $this->{test_web},
+        $this->{test_topic} );
+    $this->assert(
+        $expected =~ s/>WikiWord</>Wiki<wbr>Word<!-- WikiWord --></ );
 
     $this->doTest( $source, $expected, 1 );
 }
@@ -234,7 +237,7 @@ END_SOURCE
 sub test_splitNoppedWikiWord {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{!JavaScript}%
@@ -250,7 +253,7 @@ END_EXPECTED
 sub test_splitVerylongwordDefault {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{zzzzzzzzzzzzzzzzzzzzzzzzzz}%
@@ -266,8 +269,8 @@ END_EXPECTED
 sub test_splitVerylongwordAdjustedSettingPreference {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 10);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   10 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{zzzzzzzzzzzzzzzzzzzzzzzzzz}%
@@ -283,7 +286,7 @@ END_EXPECTED
 sub test_splitVerylongwordAdjustedSettingParameter {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"zzzzzzzzzzzzzzzzzzzzzzzzzz" longest="10"}%
@@ -299,8 +302,8 @@ END_EXPECTED
 sub test_splitVerylongwordMinimumSetting0 {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 5);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   5 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"abcdefg" longest="0"}%
@@ -316,8 +319,8 @@ END_EXPECTED
 sub test_splitVerylongwordMinimumSetting1 {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 5);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   5 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"abcdefg" longest="1"}%
@@ -333,8 +336,8 @@ END_EXPECTED
 sub test_splitVerylongwordMinimumSetting2 {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 5);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   5 );
 
     my $source = <<END_SOURCE;
 %SMARTWORDBREAK{"abcdefg" longest="2"}%
@@ -350,8 +353,8 @@ END_EXPECTED
 sub test_splitAfterPunctuation {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 99);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   99 );
 
     my $source = <<'END_SOURCE';
 %SMARTWORDBREAK{Backslash\Forwardslash/Closebracket]Openbracket[Word
@@ -373,8 +376,8 @@ END_EXPECTED
 sub test_noBreakAfterPunctuationAtEndOfWord {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 99);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   99 );
 
     my $source = <<'END_SOURCE';
 %SMARTWORDBREAK{Backslash\ Forwardslash/ Closebracket] Openbracket[
@@ -396,7 +399,7 @@ END_EXPECTED
 sub test_noChangeToScriptStyleTextareaHead {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1 );
 
     my $source = <<END_SOURCE;
 <head>WikiWord abcdefghijklmnopqrstuvwxyz</head>
@@ -412,8 +415,8 @@ END_SOURCE
 sub test_wholePageWikiWord {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
 
     my $source = "WikiWord";
 
@@ -425,7 +428,7 @@ sub test_wholePageWikiWord {
 sub test_disabledWholePage {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE', 0);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 0 );
 
     my $source = "WikiWord";
 
@@ -437,7 +440,7 @@ sub test_disabledWholePage {
 sub test_noChangeToDOCTYPE {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1 );
 
     my $source = <<END_SOURCE;
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -450,12 +453,13 @@ END_SOURCE
 sub test_splitWikiWordInTable {
     my $this = shift;
 
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_HYPHENATE', 0);
-	Foswiki::Func::setPreferencesValue('SMARTWORDBREAKPLUGIN_LONGEST', 15);
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_WHOLEPAGE', 1 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_HYPHENATE', 0 );
+    Foswiki::Func::setPreferencesValue( 'SMARTWORDBREAKPLUGIN_LONGEST',   15 );
 
     my $wikiWord = "VeryLongWikiWordThatMessesUpTableFormatting";
-	my $brokenWikiWord = "Very<wbr>Long<wbr>Wiki<wbr>Word<wbr>That<wbr>Messes<wbr>Up<wbr>Table<wbr>Formatting<!-- $wikiWord -->";
+    my $brokenWikiWord =
+"Very<wbr>Long<wbr>Wiki<wbr>Word<wbr>That<wbr>Messes<wbr>Up<wbr>Table<wbr>Formatting<!-- $wikiWord -->";
 
     my $table = <<END_TABLE;
 %TABLE{columnwidths="5%,95%"}%
@@ -463,14 +467,14 @@ sub test_splitWikiWordInTable {
 END_TABLE
 
     my $source =
-      Foswiki::Func::renderText( $table, $this->{test_web}, $this->{test_topic} );
+      Foswiki::Func::renderText( $table, $this->{test_web},
+        $this->{test_topic} );
 
-	my $expected = $source;
-    $this->assert($expected =~ s/>$wikiWord/>$brokenWikiWord/);
+    my $expected = $source;
+    $this->assert( $expected =~ s/>$wikiWord/>$brokenWikiWord/ );
 
     $this->doTest( $source, $expected, 1 );
 }
-
 
 #======================================================================
 
@@ -480,15 +484,19 @@ sub doTest {
     _trimSpaces($source);
     _trimSpaces($expected);
 
-	# Force plugin to reread preferences
-	Foswiki::Plugins::SmartWordBreakPlugin::initPlugin($this->{test_topic}, $this->{test_web});
+    # Force plugin to reread preferences
+    Foswiki::Plugins::SmartWordBreakPlugin::initPlugin( $this->{test_topic},
+        $this->{test_web} );
 
     my $actual =
       Foswiki::Func::expandCommonVariables( $source, $this->{test_topic},
         $this->{test_web}, undef );
-    $actual = Foswiki::Func::renderText( $actual, $this->{test_web}, $this->{test_topic} ) if $render;
+    $actual =
+      Foswiki::Func::renderText( $actual, $this->{test_web},
+        $this->{test_topic} )
+      if $render;
 
-	Foswiki::Plugins::SmartWordBreakPlugin::postRenderingHandler($actual);
+    Foswiki::Plugins::SmartWordBreakPlugin::postRenderingHandler($actual);
 
     if ($assertFalse) {
         $this->assert_str_not_equals( $expected, $actual );
@@ -505,8 +513,8 @@ sub _trimSpaces {
     $_[0] =~ s/^[[:space:]]+//s;    # trim at start
     $_[0] =~ s/[[:space:]]+$//s;    # trim at end
 
-	# remove leading <nop>
-	$_[0] =~ s/\A(?:<nop>[[:space:]]*)+//s;
+    # remove leading <nop>
+    $_[0] =~ s/\A(?:<nop>[[:space:]]*)+//s;
 }
 
 1;
