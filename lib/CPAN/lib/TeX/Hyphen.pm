@@ -99,15 +99,15 @@ use strict;
 use vars qw( $VERSION $DEBUG $LEFTMIN $RIGHTMIN $errstr );
 
 $VERSION = '0.140';
-sub Version () { $VERSION; }
+sub Version ()	{ $VERSION; }
 
 $DEBUG ||= 0;
 
 # To protect beginning and end of the word from hyphenation
-$LEFTMIN  = 2;
+$LEFTMIN = 2;
 $RIGHTMIN = 2;
 
-my ( @DATA, $DATA_LOADED );
+my (@DATA, $DATA_LOADED);
 
 # #############################################################
 # Constructor. Parameter specifies file with patterns.
@@ -115,110 +115,102 @@ my ( @DATA, $DATA_LOADED );
 # sections and these are used.
 #
 sub new {
-    my $class = shift;
-    my ( $file, %opts );
-    if ( scalar(@_) % 2 ) {
-        $file = shift;
-        %opts = @_;
-    }
-    else {
-        %opts = @_;
-        $file = $opts{'file'};
-    }
-    if ( not defined $file ) {
-        if ( not defined $DATA_LOADED ) {
-            @DATA        = <DATA>;
-            $DATA_LOADED = 1;
-        }
-    }
-    else {
-        open FILE, $file or do {
-            $errstr = "Error opening file `$file': $!";
-            return;
-        };
-    }
-    my $self = {};
-    bless $self, $class;
+	my $class = shift;
+	my ($file, %opts);
+	if (scalar(@_) % 2) {
+		$file = shift;
+		%opts = @_;
+	} else {
+		%opts = @_;
+		$file = $opts{'file'};
+	}
+	if (not defined $file) {
+		if (not defined $DATA_LOADED) {
+			@DATA = <DATA>;
+			$DATA_LOADED = 1;
+		}
+	} else {
+		open FILE, $file or do {
+			$errstr = "Error opening file `$file': $!";
+			return;
+		};
+	}
+	my $self = {};
+	bless $self, $class;
 
-    local ($/) = "\n";
-    my ( $tag, $value );
-    my $hyphen      = {};
-    my $beginhyphen = {};
-    my $endhyphen   = {};
-    my $bothhyphen  = {};
-    my $exception   = {};
+	local ($/) = "\n";
+	my ($tag, $value);
+	my $hyphen = {};
+	my $beginhyphen = {};
+	my $endhyphen = {};
+	my $bothhyphen = {};
+	my $exception = {};
 
-    my ( $process_patterns, $process_hyphenation );
-    my ( $leftmin, $rightmin ) = ( $LEFTMIN, $RIGHTMIN );
-    if ( not defined $opts{'style'} ) {
-        $opts{'style'} = 'czech';    # for backward compatibility
-    }
-    if ( defined $opts{'style'} ) {
-        eval qq!use ${class}::$opts{'style'}!;
-        if ( not $@ ) {
-            eval
-"\$process_patterns = \\&${class}::$opts{'style'}::process_patterns";
-            eval
-"\$process_hyphenation = \\&${class}::$opts{'style'}::process_hyphenation";
-            eval "\$leftmin = \$${class}::$opts{'style'}::LEFTMIN";
-            eval "\$rightmin = \$${class}::$opts{'style'}::RIGHTMIN";
-        }
-        else {
-            $errstr = "Error loading style module $class::$opts{'style'}: $@";
-            return;
-        }
-    }
-    $leftmin  = $opts{leftmin}  if exists $opts{leftmin};
-    $rightmin = $opts{rightmin} if exists $opts{rightmin};
+	my ($process_patterns, $process_hyphenation);
+	my ($leftmin, $rightmin) = ($LEFTMIN, $RIGHTMIN);
+	if (not defined $opts{'style'}) {
+		$opts{'style'} = 'czech';	# for backward compatibility
+	}
+	if (defined $opts{'style'}) {
+		eval qq!use ${class}::$opts{'style'}!;
+		if (not $@) {
+			eval "\$process_patterns = \\&${class}::$opts{'style'}::process_patterns";
+			eval "\$process_hyphenation = \\&${class}::$opts{'style'}::process_hyphenation";
+			eval "\$leftmin = \$${class}::$opts{'style'}::LEFTMIN";
+			eval "\$rightmin = \$${class}::$opts{'style'}::RIGHTMIN";
+		} else {
+			$errstr = "Error loading style module $class::$opts{'style'}: $@";
+			return;
+		}
+	}
+	$leftmin = $opts{leftmin} if exists $opts{leftmin};
+	$rightmin = $opts{rightmin} if exists $opts{rightmin};
 
-    my $i = 0;
-    while (( defined $file and defined( $_ = <FILE> ) )
-        or ( not defined $file and defined( $_ = $DATA[$i] ) ) )
-    {
-        $i++;
-        s/\%.*$//;    # comment out
-        next if 1 .. /\\patterns{/;    # find the \patterns section
+	my $i = 0;
+	while ((defined $file and defined($_ = <FILE>))
+		or (not defined $file and defined($_ = $DATA[$i]))) {
+		$i++;
+		s/\%.*$//;			# comment out
+		next if 1 .. /\\patterns{/;	# find the \patterns section
+		
+		chomp;
 
-        chomp;
+		last unless
+			$process_patterns->($_, $bothhyphen, $beginhyphen,
+			$endhyphen, $hyphen);
+	}
+	my $tell = $i + 1;
+	while ((defined $file and defined($_ = <FILE>))
+		or (not defined $file and defined($_ = $DATA[$i]))) {
+		$i++;
+		next if (( $i == $tell) .. /\\hyphenation{/);
 
-        last
-          unless $process_patterns->(
-            $_, $bothhyphen, $beginhyphen, $endhyphen, $hyphen
-          );
-    }
-    my $tell = $i + 1;
-    while (( defined $file and defined( $_ = <FILE> ) )
-        or ( not defined $file and defined( $_ = $DATA[$i] ) ) )
-    {
-        $i++;
-        next if ( ( $i == $tell ) .. /\\hyphenation{/ );
+		chomp;
 
-        chomp;
-
-        last unless $process_hyphenation->( $_, $exception );
-    }
-    close FILE if not defined $file;
-    $self->{hyphen}    = $hyphen;
-    $self->{begin}     = $beginhyphen;
-    $self->{end}       = $endhyphen;
-    $self->{both}      = $bothhyphen;
-    $self->{exception} = $exception;
-    print STDERR 'Statistics for ', ( defined $file ? $file : 'hyphen.tex' ),
-      ': all ',        scalar %$hyphen,
-      ' (',            scalar keys %$hyphen,
-      '), exception ', scalar %$exception,
-      ' (',            scalar keys %$exception,
-      "),\n\tbegin ",  scalar %$beginhyphen,
-      ' (',            scalar keys %$beginhyphen,
-      '), end ',       scalar %$endhyphen,
-      ' (',            scalar keys %$endhyphen,
-      '), both ', scalar %$bothhyphen, ' (', scalar keys %$bothhyphen, ")\n"
-      if $DEBUG;
-
-    $self->{exact}    = {%$exception};
-    $self->{leftmin}  = $leftmin;
-    $self->{rightmin} = $rightmin;
-    $self;
+		last unless $process_hyphenation->($_, $exception);
+	}
+	close FILE if not defined $file;
+	$self->{hyphen} = $hyphen;
+	$self->{begin} = $beginhyphen;
+	$self->{end} = $endhyphen;
+	$self->{both} = $bothhyphen;
+	$self->{exception} = $exception;
+	print STDERR 'Statistics for ', (defined $file ? $file : 'hyphen.tex'),
+		': all ' , scalar %$hyphen,
+		' (', scalar keys %$hyphen,
+		'), exception ', scalar %$exception,
+		' (', scalar keys %$exception,
+		"),\n\tbegin ", scalar %$beginhyphen,
+		' (', scalar keys %$beginhyphen,
+		'), end ', scalar %$endhyphen,
+		' (', scalar keys %$endhyphen,
+		'), both ', scalar %$bothhyphen,
+		' (', scalar keys %$bothhyphen, ")\n" if $DEBUG;
+	
+	$self->{exact} = { %$exception };
+	$self->{leftmin} = $leftmin;
+	$self->{rightmin} = $rightmin;
+	$self;
 }
 
 # ############################################
@@ -226,115 +218,111 @@ sub new {
 # Returns an array specifying the places.
 #
 sub hyphenate {
-    my ( $self, $word ) = ( shift, shift );
+	my ($self, $word) = (shift, shift);
 
-    print STDERR "Hyphenate `$word'\n" if $DEBUG;
+	print STDERR "Hyphenate `$word'\n" if $DEBUG;
+	
+	my $exact = $self->{exact};
+	if (defined(my $res = $exact->{$word})) {
+		print STDERR "Exact match $res\n" if $DEBUG;
+		return $self->make_result_list($res);
+	}
 
-    my $exact = $self->{exact};
-    if ( defined( my $res = $exact->{$word} ) ) {
-        print STDERR "Exact match $res\n" if $DEBUG;
-        return $self->make_result_list($res);
-    }
+	my $hyphen = $self->{hyphen};
+	my $beginhyphen = $self->{begin};
+	my $endhyphen = $self->{end};
+	my $bothhyphen = $self->{both};
 
-    my $hyphen      = $self->{hyphen};
-    my $beginhyphen = $self->{begin};
-    my $endhyphen   = $self->{end};
-    my $bothhyphen  = $self->{both};
+	my $totallength = length $word;
+	my @result = (0) x ($totallength + 1);
 
-    my $totallength = length $word;
-    my @result = (0) x ( $totallength + 1 );
+	# walk the word
+	my $rightstop = $totallength - $RIGHTMIN;
+	my $pos;
+	for ($pos = 0; $pos <= $rightstop; $pos++) {
+			# length of the rest of the word
+		my $restlength = $totallength - $pos;
+			# length of a substring
+		my $length;
+		for ($length = 1; $length <= $restlength; $length++) {
+			my $substr = substr $word, $pos, $length;
+			my $value;
+			my $j;
+			my $letter;
+			if (defined($value = $hyphen->{$substr})) {
+				$j = $pos;
+				print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
+				while ($value =~ /(.)/gs) {
+					$result[$j] = $1 if ($1 > $result[$j]);
+					$j++;
+				}
+			}
+			if (($pos == 0) and
+				defined($value = $beginhyphen->{$substr})) {
+				$j = 0;
+				print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
+				while ($value =~ /(.)/gs) {
+					$result[$j] = $1 if ($1 > $result[$j]);
+					$j++;
+				}
+			}
+			if (($restlength == $length) and
+				defined($value = $endhyphen->{$substr})) {
+				$j = $pos;
+				print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
+				while ($value =~ /(.)/gs) {
+					$result[$j] = $1 if ($1 > $result[$j]);
+					$j++;
+				}
+			}
+		}
+	}
+	my $value;
+	my $letter;
+	if (defined($value = $bothhyphen->{$word})) {
+		my $j = 0;
+		print STDERR "$j: $word: $value\n" if $DEBUG > 2;
+		while ($value =~ /(.)/gs) {
+			$result[$j] = $1 if ($1 > $result[$j]);
+			$j++;
+		}
+	}
 
-    # walk the word
-    my $rightstop = $totallength - $RIGHTMIN;
-    my $pos;
-    for ( $pos = 0 ; $pos <= $rightstop ; $pos++ ) {
+	my $result = join '', @result;
+	### substr($result, 0, $self->{leftmin} + 1) = '0' x ($self->{leftmin} + 1);
+	substr($result, 0, $self->{leftmin}) = '0' x $self->{leftmin};
+	substr($result, -$self->{rightmin}) = '0' x $self->{rightmin};
 
-        # length of the rest of the word
-        my $restlength = $totallength - $pos;
-
-        # length of a substring
-        my $length;
-        for ( $length = 1 ; $length <= $restlength ; $length++ ) {
-            my $substr = substr $word, $pos, $length;
-            my $value;
-            my $j;
-            my $letter;
-            if ( defined( $value = $hyphen->{$substr} ) ) {
-                $j = $pos;
-                print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
-                while ( $value =~ /(.)/gs ) {
-                    $result[$j] = $1 if ( $1 > $result[$j] );
-                    $j++;
-                }
-            }
-            if ( ( $pos == 0 )
-                and defined( $value = $beginhyphen->{$substr} ) )
-            {
-                $j = 0;
-                print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
-                while ( $value =~ /(.)/gs ) {
-                    $result[$j] = $1 if ( $1 > $result[$j] );
-                    $j++;
-                }
-            }
-            if ( ( $restlength == $length )
-                and defined( $value = $endhyphen->{$substr} ) )
-            {
-                $j = $pos;
-                print STDERR "$j: $substr: $value\n" if $DEBUG > 2;
-                while ( $value =~ /(.)/gs ) {
-                    $result[$j] = $1 if ( $1 > $result[$j] );
-                    $j++;
-                }
-            }
-        }
-    }
-    my $value;
-    my $letter;
-    if ( defined( $value = $bothhyphen->{$word} ) ) {
-        my $j = 0;
-        print STDERR "$j: $word: $value\n" if $DEBUG > 2;
-        while ( $value =~ /(.)/gs ) {
-            $result[$j] = $1 if ( $1 > $result[$j] );
-            $j++;
-        }
-    }
-
-    my $result = join '', @result;
-    ### substr($result, 0, $self->{leftmin} + 1) = '0' x ($self->{leftmin} + 1);
-    substr( $result, 0, $self->{leftmin} ) = '0' x $self->{leftmin};
-    substr( $result, -$self->{rightmin} ) = '0' x $self->{rightmin};
-
-    print STDERR "Result: $result\n" if $DEBUG;
-    return $self->make_result_list($result);
+	print STDERR "Result: $result\n" if $DEBUG;
+	return $self->make_result_list($result);
 }
 
 # ####################
 #
 #
 sub make_result_list {
-    my ( $self, $result ) = @_;
-    my @result = ();
-    my $i      = 0;
-    while ( $result =~ /./g ) {
-        push @result, $i if ( int($&) % 2 );
-        $i++;
-    }
-    @result;
+	my ($self, $result) = @_;
+	my @result = ();
+	my $i = 0;
+	while ($result =~ /./g) {
+		push @result, $i if (int($&) % 2);
+		$i++;
+	}
+	@result;
 }
 
 # #########################################
 # For a word show the result of hyphenation
 #
 sub visualize {
-    my ( $self, $word ) = ( shift, shift );
-    my $number = 0;
-    my $pos;
-    for $pos ( $self->hyphenate($word) ) {
-        substr( $word, $pos + $number, 0 ) = "-";
-        $number++;
-    }
-    $word;
+	my ($self, $word) = (shift, shift);
+	my $number = 0;
+	my $pos;
+	for $pos ($self->hyphenate($word)) {
+		substr($word, $pos + $number, 0) = "-";
+		$number++;
+	}
+	$word;
 }
 
 =head1 CHANGES

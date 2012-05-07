@@ -423,7 +423,7 @@ sub _smartBreak {
 
     # split every n characters
     my $n = $options->{longestUnbrokenWord};
-    die join ' , ', keys %$options unless $n;
+	die join ' , ', keys %$options unless $n;
     $word =~ s/((?:$regex{wordChar}){$n})(?=$regex{wordChar})/$1$separator/g;
 
     if ( $options->{typeOfWbr} eq 'unicode' ) {    # browser-dependent check
